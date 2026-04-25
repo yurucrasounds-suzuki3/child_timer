@@ -145,7 +145,7 @@ class _TimerAppState extends State<TimerApp> {
     await Future<void>.delayed(const Duration(milliseconds: 800));
     await playSafe(s["startVoice"] as String);
 
-    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+    timer = Timer.periodic(const Duration(seconds: 1), (t) async {
       setState(() {
         totalSeconds--;
       });
