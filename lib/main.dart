@@ -145,33 +145,44 @@ class _TimerAppState extends State<TimerApp> {
     await Future<void>.delayed(const Duration(milliseconds: 800));
     await playSafe(s["startVoice"] as String);
 
-    timer = Timer.periodic(const Duration(seconds: 1), (t) async {
-      setState(() {
-        totalSeconds--;
-      });
-
-      if (totalSeconds > 0 && totalSeconds <= 10 && countdownVoices.containsKey(totalSeconds)) {
-        setState(() {
-          speech = "$totalSeconds...";
-        });
-        unawaited(playSafe(countdownVoices[totalSeconds]!));
+    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
       }
 
-      if (totalSeconds % 20 == 0 && totalSeconds > 0) {
-        final lines = s["lines"] as List<String>;
+      try {
         setState(() {
-          speech = lines[random.nextInt(lines.length)];
+          totalSeconds--;
         });
-        unawaited(playSafe(cheerVoices[random.nextInt(cheerVoices.length)]));
-      }
 
-      if (totalSeconds <= 0) {
-        stop();
-        setState(() {
-          speech = s["finishText"] as String;
-          status = "おしまい";
-        });
-        unawaited(playSafe(s["finishVoice"] as String));
+        if (totalSeconds > 0 &&
+            totalSeconds <= 10 &&
+            countdownVoices.containsKey(totalSeconds)) {
+          setState(() {
+            speech = "$totalSeconds...";
+          });
+          unawaited(playSafe(countdownVoices[totalSeconds]!));
+        }
+
+        if (totalSeconds % 20 == 0 && totalSeconds > 0) {
+          final lines = (s["lines"] as List).cast<String>();
+          setState(() {
+            speech = lines[random.nextInt(lines.length)];
+          });
+          unawaited(playSafe(cheerVoices[random.nextInt(cheerVoices.length)]));
+        }
+
+        if (totalSeconds <= 0) {
+          stop();
+          setState(() {
+            speech = s["finishText"] as String;
+            status = "おしまい";
+          });
+          unawaited(playSafe(s["finishVoice"] as String));
+        }
+      } catch (e) {
+        debugPrint("timer tick error: $e");
       }
     });
   }
