@@ -111,10 +111,24 @@ class _TimerAppState extends State<TimerApp> {
     await player.play(AssetSource(file));
   }
 
+  Future<void> playSafe(String file) async {
+    try {
+      await play(file);
+    } catch (e) {
+      debugPrint("audio error: $file => $e");
+    }
+  }
+
   Future<void> start() async {
     if (running) return;
 
     totalSeconds = getInputSeconds();
+    if (totalSeconds <= 0) {
+      setState(() {
+        status = "じかんをいれてね";
+      });
+      return;
+    }
     startSeconds = totalSeconds;
 
     final s = scenes[scene]!;
@@ -125,11 +139,11 @@ class _TimerAppState extends State<TimerApp> {
       status = "カウント中";
     });
 
-    await play("「準備はいいかな？」.mp3");
+    await playSafe("「準備はいいかな？」.mp3");
     await Future<void>.delayed(const Duration(milliseconds: 800));
-    await play("「よぉーい…」.mp3");
+    await playSafe("「よぉーい…」.mp3");
     await Future<void>.delayed(const Duration(milliseconds: 800));
-    await play(s["startVoice"] as String);
+    await playSafe(s["startVoice"] as String);
 
     timer = Timer.periodic(const Duration(seconds: 1), (t) async {
       setState(() {
@@ -140,7 +154,7 @@ class _TimerAppState extends State<TimerApp> {
         setState(() {
           speech = "$totalSeconds...";
         });
-        await play(countdownVoices[totalSeconds]!);
+        unawaited(playSafe(countdownVoices[totalSeconds]!));
       }
 
       if (totalSeconds % 20 == 0 && totalSeconds > 0) {
@@ -148,7 +162,7 @@ class _TimerAppState extends State<TimerApp> {
         setState(() {
           speech = lines[random.nextInt(lines.length)];
         });
-        await play(cheerVoices[random.nextInt(cheerVoices.length)]);
+        unawaited(playSafe(cheerVoices[random.nextInt(cheerVoices.length)]));
       }
 
       if (totalSeconds <= 0) {
@@ -157,7 +171,7 @@ class _TimerAppState extends State<TimerApp> {
           speech = s["finishText"] as String;
           status = "おしまい";
         });
-        await play(s["finishVoice"] as String);
+        unawaited(playSafe(s["finishVoice"] as String));
       }
     });
   }
