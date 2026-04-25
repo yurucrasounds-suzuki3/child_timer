@@ -27,6 +27,7 @@ class TimerApp extends StatefulWidget {
 class _TimerAppState extends State<TimerApp> {
   final AudioPlayer player = AudioPlayer();
   Timer? timer;
+  final Random random = Random();
 
   int totalSeconds = 60;
   int startSeconds = 60;
@@ -46,20 +47,45 @@ class _TimerAppState extends State<TimerApp> {
       "startText": "おかたづけスタート！",
       "finishText": "おしまい！すごい！",
       "lines": [
-        "ひとつずつでだいじょうぶ",
-        "いいかんじ！",
-        "あとちょっと！",
+        "その調子その調子！",
+        "頑張って！",
+        "がんばれー",
       ],
-      "sound": "start.mp3",
+      "startVoice": "「スタート」.mp3",
+      "finishVoice": "「頑張ったね」.mp3",
     },
     "sleep": {
       "icon": "🌙",
       "startText": "ねるじゅんびはじめるよ",
       "finishText": "おやすみ〜",
-      "lines": ["ゆっくりでいいよ", "すすんでるよ", "もうすぐ"],
-      "sound": "start.mp3",
+      "lines": ["頑張って！", "その調子その調子！", "フレーフレー"],
+      "startVoice": "「スタート」.mp3",
+      "finishVoice": "「終了」.mp3",
     },
   };
+
+  final countdownVoices = <int, String>{
+    10: "「10（じゅう↓）」.mp3",
+    9: "「9」.mp3",
+    8: "「8」.mp3",
+    7: "「7」.mp3",
+    6: "「6」.mp3",
+    5: "「5」.mp3",
+    4: "「4（よん）」.mp3",
+    3: "「3」.mp3",
+    2: "「2」.mp3",
+    1: "「1」.mp3",
+  };
+
+  final cheerVoices = [
+    "「フレーフレー」.mp3",
+    "「頑張って！」.mp3",
+    "「がんばれー」.mp3",
+    "「その調子その調子！」.mp3",
+    "「あとちょっと～！」.mp3",
+    "「すごいすごい」.mp3",
+    "「合格です」.mp3",
+  ];
 
   int getInputSeconds() {
     return (int.tryParse(hoursCtrl.text) ?? 0) * 3600 +
@@ -81,11 +107,11 @@ class _TimerAppState extends State<TimerApp> {
   }
 
   Future<void> play(String file) async {
-    // assets想定
+    await player.stop();
     await player.play(AssetSource(file));
   }
 
-  void start() {
+  Future<void> start() async {
     if (running) return;
 
     totalSeconds = getInputSeconds();
@@ -99,22 +125,30 @@ class _TimerAppState extends State<TimerApp> {
       status = "カウント中";
     });
 
-    play(s["sound"] as String);
+    await play("「準備はいいかな？」.mp3");
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    await play("「よぉーい…」.mp3");
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    await play(s["startVoice"] as String);
 
-    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+    timer = Timer.periodic(const Duration(seconds: 1), (t) async {
       setState(() {
         totalSeconds--;
       });
 
-      if (totalSeconds > 0 && totalSeconds <= 10) {
+      if (totalSeconds > 0 && totalSeconds <= 10 && countdownVoices.containsKey(totalSeconds)) {
         setState(() {
           speech = "$totalSeconds...";
         });
+        await play(countdownVoices[totalSeconds]!);
       }
 
       if (totalSeconds % 20 == 0 && totalSeconds > 0) {
-        final lines = s["lines"] as List;
-        speech = lines[Random().nextInt(lines.length)];
+        final lines = s["lines"] as List<String>;
+        setState(() {
+          speech = lines[random.nextInt(lines.length)];
+        });
+        await play(cheerVoices[random.nextInt(cheerVoices.length)]);
       }
 
       if (totalSeconds <= 0) {
@@ -123,6 +157,7 @@ class _TimerAppState extends State<TimerApp> {
           speech = s["finishText"] as String;
           status = "おしまい";
         });
+        await play(s["finishVoice"] as String);
       }
     });
   }
